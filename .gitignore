@@ -1,0 +1,7 @@
+# typescripts
+/src/config.ts
+
+# resources
+/node_modules
+/shellScripts/gitConfig.sh
+package-lock.json
