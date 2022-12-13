@@ -10,6 +10,7 @@ import {
   getValidatorList,
   organizeIdentity
 } from "./utils/crawlerUtil";
+import { CRAWLER_CYCLE } from "config";
 
 class CrawlerScheduler {
   constructor() {
@@ -68,7 +69,7 @@ class CrawlerScheduler {
   private async Scheduler() {
     setTimeout(async () => {
       await this.Start();
-    }, 5000);
+    }, CRAWLER_CYCLE);
   }
 }
 

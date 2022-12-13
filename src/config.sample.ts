@@ -1,6 +1,7 @@
 import { FirmaConfig } from "@firmachain/firma-js";
 
 export const FIRMACHAIN_CONFIG = FirmaConfig.MainNetConfig;
+export const CRAWLER_CYCLE = 60 * 60 * 24;
 export const KEYBASE_URL = "https://keybase.io/_/api/1.0/user";
 export const KEYBASE_PATH = "/lookup.json?fields=pictures&key_suffix=";
 export const PUBLIC_PATH = `${__dirname}/../public/`;
