@@ -1,4 +1,4 @@
-export interface ShortDescription {
+export interface ValidatorExtractData {
   operatorAddress: string,
   identity: string
 };

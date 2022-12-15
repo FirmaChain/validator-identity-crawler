@@ -1,8 +1,22 @@
+import * as fs from 'fs';
 import { FirmaConfig, FirmaSDK, FirmaUtil, ValidatorDataType } from "@firmachain/firma-js";
-import { ShortDescription, ValidatorProfileInfo } from "../interfaces/common";
+import { IdentityFileInfo, ValidatorExtractData, ValidatorProfileInfo } from "../interfaces/common";
 import { getAxios } from "./axios";
+import { IDENTITY_FILE_NAME, PUBLIC_PATH } from '../config';
 
-export const getValidatorList = async () => {
+export const getValidatorProfileInfos = async () => {
+  try {
+    const validatorList = await _getValidatorList();
+    const validatorExtractDatas: ValidatorExtractData[] = _getValidatorExtractDatas(validatorList);
+    const validatorImageUrlDatas: ValidatorProfileInfo[] = await _getValidatorProfileInfos(validatorExtractDatas);
+  
+    return validatorImageUrlDatas;
+  } catch (e) {
+    throw e;
+  }
+}
+
+const _getValidatorList = async () => {
   try {
     const firma = new FirmaSDK(FirmaConfig.MainNetConfig);
     const validatorList = await firma.Staking.getValidatorList();
@@ -20,56 +34,93 @@ export const getValidatorList = async () => {
 
     return dataList;
   } catch (e) {
-    console.log(e);
-    return [];
+    throw "Unable to get Validator list.";
   }
 }
 
-export const organizeIdentity = (validatorList: ValidatorDataType[]) => {
-  let IdentityInfos: ShortDescription[] = [];
+const _getValidatorExtractDatas = (validatorList: ValidatorDataType[]) => {
+  let validatorExtractDatas: ValidatorExtractData[] = [];
 
   for (let i = 0; i < validatorList.length; i++) {
-    const currentValidator = validatorList[i];
+    const current = validatorList[i];
 
     try {
-      const valOperAddr = currentValidator.operator_address;
-      const identity = currentValidator.description.identity;
+      const operatorAddress = current.operator_address;
+      const identity = current.description.identity;
 
-      if (identity !== "") {
-        IdentityInfos.push({ operatorAddress: valOperAddr, identity: identity });
+      if (current.jailed === true) continue; 
+      if (current.description !== undefined && current.description.identity !== "") {
+        validatorExtractDatas.push({ operatorAddress, identity });
       }
     } catch (e) {
-      console.log(e);
-      console.log(`${currentValidator.operator_address} - Abnormalities in value <- Identity ->.`);
+      throw `${current.operator_address} - Do not have an identity.`;
     }
   }
 
-  return IdentityInfos;
+  return validatorExtractDatas;
 }
 
-export const getImageUrlByIdentityInfos = async (identityInfos: ShortDescription[]) => {
-  let validatorProfileInfos: ValidatorProfileInfo[] = [];
+const _getValidatorProfileInfos = async (validatorExtractDatas: ValidatorExtractData[]) => {
+  let validatorImageUrlDatas: ValidatorProfileInfo[] = [];
 
-  for (let i = 0; i < identityInfos.length; i++) {
-    const currentInfo = identityInfos[i];
-    const imageUrl = await getAxios(currentInfo.identity, currentInfo.operatorAddress);
-    
-    validatorProfileInfos.push({
-      operatorAddress: currentInfo.operatorAddress,
-      url: imageUrl
-    })
+  for (let i = 0; i < validatorExtractDatas.length; i++) {
+    const current = validatorExtractDatas[i];
+
+    try {
+      const operatorAddress = current.operatorAddress;
+      const url = await getAxios(current.identity);
+
+      if (url !== "") {
+        validatorImageUrlDatas.push({operatorAddress, url});
+      }
+    } catch (e) {
+      throw `${current.operatorAddress} - Unable to get URL link.`;
+    }
   }
-  
-  return validatorProfileInfos;
+
+  return validatorImageUrlDatas;
 }
 
-export const compareIdentityInfo = (newString: string, oldString: string) => {
-  const newFileHash = FirmaUtil.getHashFromString(newString);
-  const oldFileHash = FirmaUtil.getHashFromString(oldString);
-  
-  if (newFileHash === oldFileHash) {
+export const getNewValidatorProfileHash = async (validatorProfileInfos: ValidatorProfileInfo[]) => {
+  const hashData: string = FirmaUtil.getHashFromString(JSON.stringify(validatorProfileInfos));
+
+  return hashData;
+}
+
+export const getOldValidatorProfileHash = () => {
+  try {
+    const identityInfoString = fs.readFileSync(PUBLIC_PATH + IDENTITY_FILE_NAME, 'utf-8');
+    const identityFileInfo: IdentityFileInfo = JSON.parse(identityInfoString);
+    const validatorImageUrlDatas: ValidatorProfileInfo[] = identityFileInfo.profileInfos;
+    const hashData = FirmaUtil.getHashFromString(JSON.stringify(validatorImageUrlDatas));
+
+    return hashData;
+  } catch (e) {
+    throw "Unable to get historical profile data.";
+  }
+};
+
+export const isDifferentHash = (newHash: string, oldHash: string) => {
+  if (newHash !== oldHash) {
     return true;
   }
 
   return false;
+}
+
+export const saveProfileInfos = (validatorExtractDatas: ValidatorProfileInfo[]) => {
+  const dateTime = new Date().getTime();
+  const identiTyFileInfo: IdentityFileInfo = {
+    profileInfos: validatorExtractDatas,
+    lastUpdatedTime: dateTime
+  };
+
+  try {
+    const profileInfosJsonString = JSON.stringify(identiTyFileInfo);
+    fs.writeFileSync(PUBLIC_PATH + IDENTITY_FILE_NAME, profileInfosJsonString, 'utf-8');
+
+    return true;
+  } catch (e) {
+    return false;
+  }
 }

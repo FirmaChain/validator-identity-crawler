@@ -1,7 +1,12 @@
-import {
-  GIT_ADD_FILE_NAME, GIT_COMMIT_FILE_NAME, GIT_CONFIG_FILE_NAME, GIT_PULL_FILE_NAME, GIT_PUSH_FILE_NAME
-} from "../config";
+import async from "async";
 import { executeCommand } from "./bashCmd";
+import {
+  GIT_ADD_FILE_NAME,
+  GIT_COMMIT_FILE_NAME,
+  GIT_CONFIG_FILE_NAME,
+  GIT_PULL_FILE_NAME,
+  GIT_PUSH_FILE_NAME
+} from "../config";
 
 export const InitGitConfig = () => {
   executeCommand(GIT_CONFIG_FILE_NAME, (isSuccess) => {
@@ -12,41 +17,57 @@ export const InitGitConfig = () => {
   });
 };
 
-export const gitPushProcess = (callback: (isSuccess: boolean, comment: string) => void) => {
-  executeCommand(GIT_PULL_FILE_NAME, (pullResult) => {
-    if (pullResult) {
-      console.log('[SUCCESS] GIT PULL');
+export const gitPushProcess = (callback: (comment: string) => void) => {
+  try {
+    async.waterfall([
+      gitPullExecute,
+      gitAddExecute,
+      gitCommitExecute,
+      gitPushExecute
+    ], function () {
+      callback("Uploaded it to Github as the latest file.");
+    });
+  } catch (e) {
+    throw e;
+  }
+};
 
-      executeCommand(GIT_ADD_FILE_NAME, (addResult) => {
-        if (addResult) {
-          console.log('[SUCCESS] GIT ADD FILE');
-
-          executeCommand(GIT_COMMIT_FILE_NAME, (commitResult) => {
-            if (commitResult) {
-              console.log('[SUCCESS] GIT COMMIT');
-
-              executeCommand(GIT_PUSH_FILE_NAME, (pushResult) => {
-                if (pushResult) {
-                  console.log('[SUCCESS] GIT PUSH');
-                  callback(pushResult, "process completed");
-                } else {
-                  console.log('[FAILED] GIT PUSH');
-                  callback(pushResult, "process failed");
-                }
-              });
-            } else {
-              console.log('[FAILED] GIT COMMIT');
-              callback(commitResult, "process failed");
-            }
-          });
-        } else {
-          console.log('[FAILED] GIT ADD FILE');
-          callback(addResult, "process failed");
-        }
-      });
+const gitPullExecute = (callback: () => void) => {
+  executeCommand(GIT_PULL_FILE_NAME, (isSuccess, errorMsg) => {
+    if (isSuccess) {
+      callback();
     } else {
-      console.log('[FAILED] GIT PULL');
-      callback(pullResult, "process failed");
+      throw `<GIT PULL> ${errorMsg}`;
     }
   });
 };
+
+const gitAddExecute = (callback: () => void) => {
+  executeCommand(GIT_ADD_FILE_NAME, (isSuccess, errorMsg) => {
+    if (isSuccess) {
+      callback();
+    } else {
+      throw `<GIT ADD> ${errorMsg}`;
+    }
+  });
+};
+
+const gitCommitExecute = (callback: () => void) => {
+  executeCommand(GIT_COMMIT_FILE_NAME, (isSuccess, errorMsg) => {
+    if (isSuccess) {
+      callback();
+    } else {
+      throw `<GIT COMMIT> ${errorMsg}`;
+    }
+  });
+};
+
+const gitPushExecute = (callback: () => void) => {
+  executeCommand(GIT_PUSH_FILE_NAME, (isSuccess, errorMsg) => {
+    if (isSuccess) {
+      callback();
+    } else {
+      throw `<GIT PUSH> ${errorMsg}`;
+    }
+  });
+}

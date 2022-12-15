@@ -1,16 +1,15 @@
-import { getIdentityFile, writeIdentityFile } from "./utils/file";
-import { IdentityFileInfo } from "./interfaces/common";
 import {
   gitPushProcess,
   InitGitConfig
 } from "./utils/gitUtil";
 import {
-  compareIdentityInfo,
-  getImageUrlByIdentityInfos,
-  getValidatorList,
-  organizeIdentity
+  getNewValidatorProfileHash,
+  getOldValidatorProfileHash,
+  getValidatorProfileInfos,
+  isDifferentHash,
+  saveProfileInfos
 } from "./utils/crawlerUtil";
-import { CRAWLER_CYCLE } from "config";
+import { ErrorLog, InfoLog } from "./utils/logger";
 
 class CrawlerScheduler {
   constructor() {
@@ -20,56 +19,33 @@ class CrawlerScheduler {
   }
 
   private async Start() {
-    console.log("Start Crawler");
-    const validatorList = await getValidatorList();
-    if (validatorList.length === 0) {
-      console.log("validatorList length is zero");
-      this.Scheduler();
+    InfoLog("[START] crawling validator identity image");
+
+    try {
+      const profileInfos = await getValidatorProfileInfos();
+
+      const newHash = await getNewValidatorProfileHash(profileInfos);
+      const oldHash = getOldValidatorProfileHash();
+
+      const isNeedUpdate = isDifferentHash(newHash, oldHash);
+
+      if (isNeedUpdate) {
+        const isSaved = saveProfileInfos(profileInfos);
+
+        if (isSaved) {
+          InfoLog("File saved successfully.");
+
+          gitPushProcess((comment) => {
+            InfoLog(`[END] ${comment}`);
+          });
+        }
+      } else {
+        InfoLog("[START] No identity image changes.");
+      }
+    } catch (e) {
+      ErrorLog(e);
+      return ;
     }
-
-    const identityInfos = organizeIdentity(validatorList);
-    if (identityInfos.length === 0) {
-      console.log("identityInfos length is zero");
-      this.Scheduler();
-    }
-
-    const imageUrlByIdentityInfos = await getImageUrlByIdentityInfos(identityInfos);
-    const newProfileJsonString = JSON.stringify(imageUrlByIdentityInfos);
-
-    const oldIdentityJsonString = getIdentityFile();
-    let oldProfileJsonString = "";
-
-    if (oldIdentityJsonString !== "") {
-      const oldProfileInfo: IdentityFileInfo = JSON.parse(oldIdentityJsonString);
-      oldProfileJsonString = JSON.stringify(oldProfileInfo.profileInfos);
-    }
-
-    const compareResult = compareIdentityInfo(newProfileJsonString, oldProfileJsonString);
-
-    console.log("End crawler");
-
-    if (!compareResult) {
-      const dateTime = new Date().getTime();
-      const fileInfo: IdentityFileInfo = {
-        profileInfos: imageUrlByIdentityInfos,
-        lastUpdatedTime: dateTime
-      };
-
-      writeIdentityFile(JSON.stringify(fileInfo));
-
-      gitPushProcess((isSuccess, comment) => {
-        console.log(comment);
-        this.Scheduler();
-      });
-    } else {
-      this.Scheduler();
-    }
-  }
-
-  private async Scheduler() {
-    setTimeout(async () => {
-      await this.Start();
-    }, CRAWLER_CYCLE);
   }
 }
 

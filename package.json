@@ -17,6 +17,10 @@
   },
   "dependencies": {
     "@firmachain/firma-js": "^0.2.47",
-    "child_process": "^1.0.2"
+    "@types/async": "^3.2.16",
+    "async": "^3.2.4",
+    "child_process": "^1.0.2",
+    "winston": "^3.8.2",
+    "winston-daily-rotate-file": "^4.7.1"
   }
 }
