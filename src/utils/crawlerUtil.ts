@@ -7,8 +7,8 @@ import { IDENTITY_FILE_NAME, PUBLIC_PATH } from '../config';
 export const getValidatorProfileInfos = async () => {
   try {
     const validatorList = await _getValidatorList();
-    const validatorExtractDatas: ValidatorExtractData[] = _getValidatorExtractDatas(validatorList);
-    const validatorImageUrlDatas: ValidatorProfileInfo[] = await _getValidatorProfileInfos(validatorExtractDatas);
+    const validatorExtractDatas = _getValidatorExtractDatas(validatorList);
+    const validatorImageUrlDatas = await _getValidatorProfileInfos(validatorExtractDatas);
   
     return validatorImageUrlDatas;
   } catch (e) {
@@ -21,8 +21,8 @@ const _getValidatorList = async () => {
     const firma = new FirmaSDK(FirmaConfig.MainNetConfig);
     const validatorList = await firma.Staking.getValidatorList();
 
-    let dataList: ValidatorDataType[] = validatorList.dataList;
-    let nextKey: string = validatorList.pagination.next_key;
+    let dataList = validatorList.dataList;
+    let nextKey = validatorList.pagination.next_key;
 
     while (nextKey !== null) {
       const nextValidatorList = await firma.Staking.getValidatorList(nextKey);
@@ -48,7 +48,6 @@ const _getValidatorExtractDatas = (validatorList: ValidatorDataType[]) => {
       const operatorAddress = current.operator_address;
       const identity = current.description.identity;
 
-      if (current.jailed === true) continue; 
       if (current.description !== undefined && current.description.identity !== "") {
         validatorExtractDatas.push({ operatorAddress, identity });
       }
@@ -70,9 +69,8 @@ const _getValidatorProfileInfos = async (validatorExtractDatas: ValidatorExtract
       const operatorAddress = current.operatorAddress;
       const url = await getAxios(current.identity);
 
-      if (url !== "") {
-        validatorImageUrlDatas.push({operatorAddress, url});
-      }
+      validatorImageUrlDatas.push({operatorAddress, url});
+
     } catch (e) {
       throw `${current.operatorAddress} - Unable to get URL link.`;
     }
@@ -91,7 +89,7 @@ export const getOldValidatorProfileHash = () => {
   try {
     const identityInfoString = fs.readFileSync(PUBLIC_PATH + IDENTITY_FILE_NAME, 'utf-8');
     const identityFileInfo: IdentityFileInfo = JSON.parse(identityInfoString);
-    const validatorImageUrlDatas: ValidatorProfileInfo[] = identityFileInfo.profileInfos;
+    const validatorImageUrlDatas = identityFileInfo.profileInfos;
     const hashData = FirmaUtil.getHashFromString(JSON.stringify(validatorImageUrlDatas));
 
     return hashData;
@@ -99,14 +97,6 @@ export const getOldValidatorProfileHash = () => {
     throw "Unable to get historical profile data.";
   }
 };
-
-export const isDifferentHash = (newHash: string, oldHash: string) => {
-  if (newHash !== oldHash) {
-    return true;
-  }
-
-  return false;
-}
 
 export const saveProfileInfos = (validatorExtractDatas: ValidatorProfileInfo[]) => {
   const dateTime = new Date().getTime();

@@ -6,7 +6,6 @@ import {
   getNewValidatorProfileHash,
   getOldValidatorProfileHash,
   getValidatorProfileInfos,
-  isDifferentHash,
   saveProfileInfos
 } from "./utils/crawlerUtil";
 import { ErrorLog, InfoLog } from "./utils/logger";
@@ -27,9 +26,7 @@ class CrawlerScheduler {
       const newHash = await getNewValidatorProfileHash(profileInfos);
       const oldHash = getOldValidatorProfileHash();
 
-      const isNeedUpdate = isDifferentHash(newHash, oldHash);
-
-      if (isNeedUpdate) {
+      if (newHash !== oldHash) {
         const isSaved = saveProfileInfos(profileInfos);
 
         if (isSaved) {
@@ -40,7 +37,7 @@ class CrawlerScheduler {
           });
         }
       } else {
-        InfoLog("[START] No identity image changes.");
+        InfoLog("[END] No identity image changes.");
       }
     } catch (e) {
       ErrorLog(e);
