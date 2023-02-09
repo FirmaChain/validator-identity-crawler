@@ -3,6 +3,7 @@ import { FirmaConfig, FirmaSDK, FirmaUtil, ValidatorDataType } from "@firmachain
 import { IdentityFileInfo, ValidatorExtractData, ValidatorProfileInfo } from "../interfaces/common";
 import { getAxios } from "./axios";
 import { IDENTITY_FILE_NAME, PUBLIC_PATH } from '../config';
+import { StakingValidatorStatus } from '@firmachain/firma-js/dist/sdk/FirmaStakingService';
 
 export const getValidatorProfileInfos = async () => {
   try {
@@ -25,7 +26,7 @@ const _getValidatorList = async () => {
     let nextKey = validatorList.pagination.next_key;
 
     while (nextKey !== null) {
-      const nextValidatorList = await firma.Staking.getValidatorList(nextKey);
+      const nextValidatorList = await firma.Staking.getValidatorList(StakingValidatorStatus.ALL, nextKey);
       const nextDataList = nextValidatorList.dataList;
       nextKey = nextValidatorList.pagination.next_key;
 
