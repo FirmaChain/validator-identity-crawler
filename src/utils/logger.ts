@@ -1,8 +1,34 @@
 import winston from 'winston';
 import winstonDaily from 'winston-daily-rotate-file';
+import { existsSync, mkdirSync } from 'fs';
+
+const { combine, timestamp, printf } = winston.format;
 
 const logDir = 'logs';
-const { combine, timestamp, printf } = winston.format;
+
+if (!existsSync(logDir)) {
+  mkdirSync(logDir);
+
+  if (!existsSync(`${logDir}/info`)) {
+    mkdirSync(`${logDir}/info`);
+  }
+
+  if (!existsSync(`${logDir}/error`)) {
+    mkdirSync(`${logDir}/error`);
+  }
+}
+
+const winstonDailyOptions = (level: string) => {
+  return {
+    level: level,
+    datePattern: 'YYYY-MM-DD',
+    dirname: `${logDir}/${level}`,
+    filename: `%DATE%.log`,
+    maxFiles: 30,
+    zippedArchive: true,
+    json: false
+  }
+}
 
 const logFormat = printf(info => {
   return `${info.timestamp} ${info.level}: ${info.message}`;
@@ -16,24 +42,8 @@ const logger = winston.createLogger({
     logFormat
   ),
   transports: [
-    new winstonDaily({
-      level: 'info',
-      datePattern: 'YYYY-MM-DD',
-      dirname: logDir + '/info',
-      filename: `%DATE%.log`,
-      maxFiles: 30,
-      zippedArchive: true,
-      json: false
-    }),
-    new winstonDaily({
-      level: 'error',
-      datePattern: 'YYYY-MM-DD',
-      dirname: logDir + '/error',
-      filename: `%DATE%.error.log`,
-      maxFiles: 30,
-      zippedArchive: true,
-      json: false
-    }),
+    new winstonDaily(winstonDailyOptions('info')),
+    new winstonDaily(winstonDailyOptions('error')),
   ],
 });
 
