@@ -2,7 +2,7 @@ import simpleGit from "simple-git";
 import path from "path";
 
 import { COMMIT_MESSAGE, IDENTITY_FILE_NAME, PUBLIC_PATH } from "../config";
-import { InfoLog } from "./logger";
+import { InfoLog } from "./logger.util";
 
 const repoPath = path.resolve(__dirname, '../');
 const git = simpleGit(repoPath);

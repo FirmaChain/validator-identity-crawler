@@ -1,9 +1,4 @@
-# typescripts
-/src/config.ts
-
 # resources
 /node_modules
 /logs
-/shellScripts/gitConfig.sh
 package-lock.json
-crawler.txt

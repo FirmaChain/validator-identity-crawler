@@ -1,49 +1,41 @@
-import {
-  gitPushProcess,
-  InitGitConfig
-} from "./utils/gitUtil";
-import {
-  getNewValidatorProfileHash,
-  getOldValidatorProfileHash,
-  getValidatorProfileInfos,
-  saveProfileInfos
-} from "./utils/crawlerUtil";
-import { ErrorLog, InfoLog } from "./utils/logger";
+import { ErrorLog, InfoLog } from "./utils/logger.util";
+import { CrawlerUtil } from "./utils/crawler.utils";
+import { FileUtil } from "./utils/file.utils";
+import { GitUtil } from "./utils/git.util";
 
-class CrawlerScheduler {
-  constructor() {
-    InitGitConfig();
+const crawlerUtil = CrawlerUtil();
+const fileUtil = FileUtil();
+const gitUtil = GitUtil();
 
-    this.Start();
-  }
+const startCrawler = async () => {
+  InfoLog("[START] Initiate identity image lookup for validators.");
 
-  private async Start() {
-    InfoLog("[START] crawling validator identity image");
+  try {
+    // Get repo config file
+    await gitUtil.pull();
 
-    try {
-      const profileInfos = await getValidatorProfileInfos();
+    // Get validator infos
+    const profileInfos = await crawlerUtil.getProfileInfos();
 
-      const newHash = await getNewValidatorProfileHash(profileInfos);
-      const oldHash = getOldValidatorProfileHash();
+    // compare file hash
+    const newHashData = crawlerUtil.getHash(JSON.stringify(profileInfos));
+    const oldHashData = fileUtil.getLocalFileHash();
 
-      if (newHash !== oldHash) {
-        const isSaved = saveProfileInfos(profileInfos);
+    if (newHashData !== oldHashData) {
+      // Save file
+      fileUtil.saveFileData(profileInfos);
 
-        if (isSaved) {
-          InfoLog("File saved successfully.");
-
-          gitPushProcess((comment) => {
-            InfoLog(`[END] ${comment}`);
-          });
-        }
-      } else {
-        InfoLog("[END] No identity image changes.");
-      }
-    } catch (e) {
-      ErrorLog(e);
-      return ;
+      // Proceed with github process
+      await gitUtil.commitAndPush();
+    } else {
+      // not save
+      InfoLog("        No images have been changed and will not be saved.");
     }
+  } catch (e) {
+    ErrorLog(e);
+  } finally {
+    InfoLog("[STOP] Ends image lookup for validators.");
   }
 }
 
-new CrawlerScheduler();
+startCrawler();
