@@ -1,4 +1,5 @@
 # validator-identity-crawler
+![스크린샷 2023-07-17 오후 8 50 21](https://github.com/FirmaChain/validator-identity-crawler/assets/93503020/aed333af-2c3f-4fb0-93e1-c8605b2d09dd)
 
 ## Features
 This project provides the latest profile image link of the validator, and a scheduling task is performed every hour using Ubuntu cron. When the scheduling task runs, it compares the previous profile image link and if there are changes, it commits and pushes them to the public/identity.json file.
