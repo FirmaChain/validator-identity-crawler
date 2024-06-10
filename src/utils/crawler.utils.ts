@@ -12,8 +12,13 @@ export const CrawlerUtil = () => {
   const getProfileInfos = async () => {
     try {
       const validatorList = await getValidatorList();
+      InfoLog(`Success validat & validator list length: ${validatorList.length}`)
+
       const extractDatas = getExtractDatas(validatorList);
+      InfoLog(`Extract validator datas: ${JSON.stringify(extractDatas)}`);
+      
       const urlDatas = await getUrlByIdentity(extractDatas);
+      InfoLog(`Get validator identity url datas: ${JSON.stringify(urlDatas)}`);
 
       InfoLog("        Successful identity image lookup by validators.");
       
