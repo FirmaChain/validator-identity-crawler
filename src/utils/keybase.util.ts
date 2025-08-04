@@ -8,10 +8,14 @@ const axiosClient = axios.create(axiosConfig);
 export const keybaseFetchData = async (identity: string) => {
   try {
     const response = await axiosClient.get(KEYBASE_PATH + identity);
-    const url = response.data['them'][0]['pictures']['primary']['url'];
-    return url;
+    if (response.data.status.code === 0) {
+      const url = response.data['them'][0]['pictures']['primary']['url'];
+      return url;
+    } else {
+      return null;
+    }
   } catch (error) {
     ErrorLog(error);
-    throw error;
+    return null;
   }
 }
